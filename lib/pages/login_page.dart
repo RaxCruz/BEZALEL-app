@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class LoginPage extends StatelessWidget {
-  LoginPage({super.key});
+import '../providers/device_provider.dart';
+import 'home_page.dart';
+import '../providers/user_provider.dart';
+import '../api/services/wordpress_service.dart';
 
-  final TextEditingController _emailController = TextEditingController();
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final WordPressService _wordPressService = WordPressService(
+    baseUrl: 'https://wordpress-1312427-4797155.cloudwaysapps.com'
+  );
+  final TextEditingController _accountController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +42,11 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
 
-                // 電子郵件輸入框
+                // 帳號輸入框
                 TextField(
-                  controller: _emailController,
+                  controller: _accountController,
                   decoration: InputDecoration(
-                    hintText: '電子郵件',
+                    hintText: '帳號',
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -73,7 +88,7 @@ class LoginPage extends StatelessWidget {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: _isLoading ? null : () => _handleLogin(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -81,10 +96,19 @@ class LoginPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      '登入',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            '登入',
+                            style: TextStyle(fontSize: 16),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -105,7 +129,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // 第三方登入按鈕
+                // 三方登入按鈕
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -137,5 +161,53 @@ class LoginPage extends StatelessWidget {
         Text(label, style: TextStyle(color: Colors.grey[600])),
       ],
     );
+  }
+
+  void _handleLogin(BuildContext context) async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final loginResponse = await _wordPressService.login(
+        _accountController.text,
+        _passwordController.text,
+      );
+      
+      if (loginResponse.success) {
+        final userInfoResponse = await _wordPressService.getUserInfo(loginResponse.token!);
+        final userInfoDeviceResponse = await _wordPressService.getUserDeviceInfo(loginResponse.token!);
+        
+        if (userInfoResponse.success) {
+          context.read<UserProvider>().setUserInfo(userInfoResponse);
+          context.read<DeviceProvider>().setDeviceInfo(userInfoDeviceResponse);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => HomePage(),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(userInfoResponse.error ?? '獲取用戶信息失敗')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(loginResponse.error ?? '登入失敗')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('發生錯誤: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
