@@ -3,17 +3,19 @@ import 'package:http/http.dart' as http;
 import '../models/login_response.dart';
 import '../models/user_info_response.dart';
 import '../models/user_device_info_response.dart';
+import '../models/register_response.dart';
+import '../../config/app_config.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class WordPressService {
-  final String baseUrl;
-
-  WordPressService({required this.baseUrl});
+  WordPressService();
 
   // 登入
   Future<LoginResponse> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/wp-json/jwt-auth/v1/token'),
+        Uri.parse('${dotenv.env['BASE_URL']}/wp-json/jwt-auth/v1/token'),
         body: {
           'username': username,
           'password': password,
@@ -47,8 +49,11 @@ class WordPressService {
   // 獲取用戶信息
   Future<UserInfoResponse> getUserInfo(String token) async {
     try {
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      final userId = decodedToken['data']['user']['id'];
+
       final response = await http.get(
-        Uri.parse('$baseUrl/wp-json/wc/v3/customers/3'),
+        Uri.parse('${dotenv.env['BASE_URL']}/wp-json/wc/v3/customers/$userId'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -81,8 +86,12 @@ class WordPressService {
   // 獲取用戶設備信息
   Future<UserDeviceInfoResponse> getUserDeviceInfo(String token) async {
     try {
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      final userId = decodedToken['data']['user']['id'];
+
       final response = await http.get(
-        Uri.parse('$baseUrl/wp-json/wc/v3/customers/3/bluetooth-devices'),
+        Uri.parse(
+            '${dotenv.env['BASE_URL']}/wp-json/wc/v3/customers/$userId/bluetooth-devices'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -111,7 +120,8 @@ class WordPressService {
   Future<bool> validateToken(String token) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/wp-json/jwt-auth/v1/token/validate'),
+        Uri.parse(
+            '${dotenv.env['BASE_URL']}/wp-json/jwt-auth/v1/token/validate'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -122,4 +132,51 @@ class WordPressService {
       return false;
     }
   }
-} 
+
+  // 註冊
+  Future<RegisterResponse> register({
+    required String email,
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final String apiUrl = '${dotenv.env['BASE_URL']}/wp-json/wc/v3/customers';
+      print(apiUrl);
+      String basicAuth = base64Encode(utf8.encode(
+          '${dotenv.env['CONSUMER_KEY']}:${dotenv.env['CONSUMER_SECRET']}'));
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Basic $basicAuth',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'email': email,
+          'first_name': firstName,
+          'last_name': lastName,
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        // WooCommerce API 成功創建返回 201
+        final Map<String, dynamic> data = json.decode(response.body);
+        return RegisterResponse.fromJson(data);
+      } else {
+        final Map<String, dynamic> error = json.decode(response.body);
+        return RegisterResponse(
+          success: false,
+          error: error['message'] ?? '註冊失敗',
+        );
+      }
+    } catch (e) {
+      return RegisterResponse(
+        success: false,
+        error: '網路錯誤: ${e.toString()}',
+      );
+    }
+  }
+}
