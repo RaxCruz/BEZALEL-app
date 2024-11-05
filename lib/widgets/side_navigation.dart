@@ -37,7 +37,7 @@ class _SideNavigationState extends State<SideNavigation> {
 
     return showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(isEnglish ? 'Confirm Logout' : '確認登出'),
           content:
@@ -49,7 +49,7 @@ class _SideNavigationState extends State<SideNavigation> {
                 style: const TextStyle(color: Colors.grey),
               ),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
             ),
             TextButton(
@@ -58,8 +58,8 @@ class _SideNavigationState extends State<SideNavigation> {
                 style: const TextStyle(color: Colors.blue),
               ),
               onPressed: () {
-                _handleLogout();
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
+                _handleLogout(context);
               },
             ),
           ],
@@ -68,23 +68,18 @@ class _SideNavigationState extends State<SideNavigation> {
     );
   }
 
-  void _handleLogout() async {
-    try {
-      // 清除用戶數據
-      await context.read<UserProvider>().logout();
+  void _handleLogout(BuildContext context) {
+    // 清除用戶數據
+    context.read<UserProvider>().clear();
+    context.read<DeviceProvider>().clear();
 
-      // 清除設備數據
-      context.read<DeviceProvider>().clear();
-
-      // 導航到登入頁面
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
-    } catch (e) {
-      print('登出錯誤: $e');
-    }
+    // 使用 Navigator.pushReplacement
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginPage(),
+      ),
+    );
   }
 
   @override

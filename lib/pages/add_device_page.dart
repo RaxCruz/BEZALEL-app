@@ -12,6 +12,7 @@ class AddDevicePage extends StatefulWidget {
 class _AddDevicePage extends State<AddDevicePage>
     with SingleTickerProviderStateMixin {
   bool _isSearching = false;
+  bool _isDisposed = false;
   List<String> devices = [];
   late AnimationController _animationController;
 
@@ -37,6 +38,8 @@ class _AddDevicePage extends State<AddDevicePage>
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _isSearching = false;
     _animationController.dispose();
     super.dispose();
   }
@@ -174,9 +177,9 @@ class _AddDevicePage extends State<AddDevicePage>
   }
 
   void _simulateDeviceFound(bool isEnglish) {
-    if (_isSearching) {
+    if (_isSearching && !_isDisposed) {
       Future.delayed(const Duration(seconds: 1), () {
-        if (_isSearching) {
+        if (_isSearching && !_isDisposed && mounted) {
           setState(() {
             devices
                 .add('${_getText(isEnglish)['device']} ${devices.length + 1}');
