@@ -177,7 +177,7 @@ class _LoginPageState extends State<LoginPage> {
               // 副標題
               Center(
                 child: Text(
-                  "已有Bezalel帳號請直接登入，同步城域",
+                  "已有Bezalel帳號請直接登入",
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
