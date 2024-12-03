@@ -1,7 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/locale_provider.dart';
 
 class EmptyDevicePage extends StatelessWidget {
   const EmptyDevicePage({super.key});
+
+  String _getAddDeviceText(BuildContext context) {
+    final isEnglish = context.watch<LocaleProvider>().isEnglish;
+    return isEnglish ? 'Add Your First Device' : '添加您的第一台設備';
+  }
+
+  String _getHelpText(BuildContext context) {
+    final isEnglish = context.watch<LocaleProvider>().isEnglish;
+    return isEnglish ? 'This app helps you to:' : '該應用程式可以幫助您:';
+  }
+
+  String _getFeatureText(BuildContext context, int index) {
+    final isEnglish = context.watch<LocaleProvider>().isEnglish;
+    switch (index) {
+      case 0:
+        return isEnglish ? 'Check your device status' : '查看您的設備狀態';
+      case 1:
+        return isEnglish ? 'Manage your devices' : '管理您的設備';
+      case 2:
+        return isEnglish ? 'Monitor device services' : '監視裝置服務';
+      default:
+        return '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +53,7 @@ class EmptyDevicePage extends StatelessWidget {
 
           // 提示文字
           Text(
-            '添加您的第一台設備',
+            _getAddDeviceText(context),
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -42,16 +68,16 @@ class EmptyDevicePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '該應用程式可以幫助您:',
+                  _getHelpText(context),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildFeatureItem('查看您的設備狀態'),
-                _buildFeatureItem('管理您的設備'),
-                _buildFeatureItem('監視裝置服務'),
+                _buildFeatureItem(context, 0),
+                _buildFeatureItem(context, 1),
+                _buildFeatureItem(context, 2),
               ],
             ),
           ),
@@ -60,14 +86,14 @@ class EmptyDevicePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureItem(String text) {
+  Widget _buildFeatureItem(BuildContext context, int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           const Text('• ', style: TextStyle(color: Colors.grey)),
           Text(
-            text,
+            _getFeatureText(context, index),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],

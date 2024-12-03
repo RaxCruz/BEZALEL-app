@@ -23,7 +23,9 @@ class WordPressService {
       );
 
       if (response.statusCode == 200) {
+        
         final Map<String, dynamic> data = json.decode(response.body);
+        print(data);
         return LoginResponse(
           success: true,
           token: data['token'],
@@ -61,6 +63,8 @@ class WordPressService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
+        print('===========getuserinfo================');
+        print(data);
         return UserInfoResponse(
           success: true,
           id: data['id'],
@@ -69,6 +73,8 @@ class WordPressService {
           roles: data['role'],
         );
       } else {
+        print('===========getuserinfo================');
+        print('error');
         final Map<String, dynamic> error = json.decode(response.body);
         return UserInfoResponse(
           success: false,
@@ -126,7 +132,7 @@ class WordPressService {
           'Authorization': 'Bearer $token',
         },
       );
-
+      
       return response.statusCode == 200;
     } catch (e) {
       return false;
